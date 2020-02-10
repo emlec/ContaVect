@@ -26,6 +26,7 @@ try:
     from sys import argv  # Mandatory package
     import csv  # Mandatory package
     import optparse  # Mandatory package
+    import subprocess  # Mandatory package
 
     # Third party packages
     import pysam  # Mandatory package
@@ -46,8 +47,8 @@ try:
     from ContaVect.Conf_file import write_conf_file  # if not  imported = not creation of configuration file
 
 except ImportError as E:
-    print (E)
-    print ("Please verify your dependencies. See Readme for more informations\n")
+    print(E)
+    print("Please verify your dependencies. See Readme for more informations\n")
     exit()
 
 
@@ -96,9 +97,11 @@ class Main(object):
         # Create a empty configuration file if needed with the number of reference necessary
         if number_ref:
             if number_ref > 1:
-                print "Create an empty configuration file with {} references in the current folder.".format(number_ref)
+                print
+                "Create an empty configuration file with {} references in the current folder.".format(number_ref)
             else:
-                print "Create an empty configuration file with {} reference in the current folder.".format(number_ref)
+                print
+                "Create an empty configuration file with {} reference in the current folder.".format(number_ref)
             write_conf_file(number_ref)
             exit()
 
@@ -108,7 +111,7 @@ class Main(object):
         self.conf = ConfigParser.RawConfigParser(allow_no_value=True)
         self.conf.read(conf_file)
         if not self.conf.sections():
-            print ("Empty or invalid configuration file. See Readme for more informations\n")
+            print("Empty or invalid configuration file. See Readme for more informations\n")
             exit()
         try:
             # Mandatory paramaters
@@ -174,19 +177,19 @@ class Main(object):
                 self.raw_ref_list.append(ref)
 
         except ConfigParser.NoOptionError as E:
-            print (E)
-            print ("An option is missing in the configuration file")
-            print ("Please report to the descriptions in the configuration file\n")
+            print(E)
+            print("An option is missing in the configuration file")
+            print("Please report to the descriptions in the configuration file\n")
             exit()
         except ConfigParser.NoSectionError as E:
-            print (E)
-            print ("An section is missing in the configuration file")
-            print ("Please report to the descriptions in the configuration file\n")
+            print(E)
+            print("An section is missing in the configuration file")
+            print("Please report to the descriptions in the configuration file\n")
             exit()
         except ValueError as E:
-            print (E)
-            print ("One of the value in the configuration file is not in the correct format")
-            print ("Please report to the descriptions in the configuration file\n")
+            print(E)
+            print("One of the value in the configuration file is not in the correct format")
+            print("Please report to the descriptions in the configuration file\n")
             exit()
 
     def __repr__(self):
@@ -223,7 +226,7 @@ class Main(object):
         stime = time()
         self.outdir = mkdir(path.abspath(self.outdir))
 
-        print ("\n##### PARSE REFERENCES #####\n")
+        print("\n##### PARSE REFERENCES #####\n")
         # Create CV_Reference.Reference object for each reference easily accessible through
         # Reference class methods
 
@@ -238,7 +241,7 @@ class Main(object):
 
         # Reference Masking
         if self.ref_masking:
-            print ("\n##### REFERENCE HOMOLOGIES MASKING #####\n")
+            print("\n##### REFERENCE HOMOLOGIES MASKING #####\n")
             self.db_dir = mkdir(path.join(self.outdir, "blast_db/"))
             ref_list = self._iterative_masker()
             # Erase existing index value if ref masking was performed
@@ -246,12 +249,12 @@ class Main(object):
 
         # Fastq Filtering
         if self.quality_filtering or self.adapter_trimming:
-            print ("\n##### FASTQ FILTERING #####\n")
+            print("\n##### FASTQ FILTERING #####\n")
             self.fastq_dir = mkdir(path.join(self.outdir, "fastq/"))
             self.R1, self.R2 = self._fastq_filter()
 
         # BWA alignment
-        print ("\n##### READ REFERENCES AND ALIGN WITH BWA #####\n")
+        print("\n##### READ REFERENCES AND ALIGN WITH BWA #####\n")
         # An index will be generated if no index was provided
         self.result_dir = mkdir(path.join(self.outdir, "results/"))
 
@@ -269,11 +272,15 @@ class Main(object):
             align_outname=self.outprefix + ".sam",
             index_outname=self.outprefix + ".idx")
 
-        print ("\n##### FILTER ALIGNED READS AND ASSIGN A REFERENCE #####\n")
+        print("\n##### FIX READ PAIRING INFORMATION AND FLAG USING SAMTOOLS FIXMATE #####\n")
+        self.fixmate_sam = self.result_dir + self.outprefix + "_fixmate.sam"
+        self._samtools_fixmate()
+
+        print("\n##### FILTER ALIGNED READS AND ASSIGN A REFERENCE #####\n")
         # Split the output sam file according to each reference
         self._sam_spliter()
 
-        print ("\n##### GENERATE OUTPUT FOR EACH REFERENCE #####\n")
+        print("\n##### GENERATE OUTPUT FOR EACH REFERENCE #####\n")
         # Deal with garbage read dictionnary
         self._garbage_output()
         # Ask references to generate the output they were configured to
@@ -282,8 +289,8 @@ class Main(object):
         self._distribution_output()
         self._make_report()
 
-        print ("\n##### DONE #####\n")
-        print ("Total execution time = {}s".format(round(time() - stime, 2)))
+        print("\n##### DONE #####\n")
+        print("Total execution time = {}s".format(round(time() - stime, 2)))
 
     ##~~~~~~~PRIVATE METHODS~~~~~~~#
 
@@ -322,7 +329,7 @@ class Main(object):
             # if seq.length < 3000:
             # import_and_pad (
 
-            print (repr(Ref))
+            print(repr(Ref))
 
     def _iterative_masker(self):  #### TODO The fuction directly manipulate reference field= change that
         """
@@ -335,7 +342,7 @@ class Main(object):
             # Extract subject and query_list from ref_list
             subject = Reference.Instances[i]
             query_list = Reference.Instances[0:i]
-            print ("\n# PROCESSING REFERENCE {} #\n".format(subject.name))
+            print("\n# PROCESSING REFERENCE {} #\n".format(subject.name))
 
             # Perform a blast of query list against subject
             hit_list = Blastn.align(
@@ -395,7 +402,7 @@ class Main(object):
             compress_output=False)
 
         # Print a simple result
-        print ("Pairs processed: {}\t Pairs passed : {}\t in {} s".format(
+        print("Pairs processed: {}\t Pairs passed : {}\t in {} s".format(
             self.fFilter.getCTypeVal('total'),
             self.fFilter.getCTypeVal('total_pass'),
             self.fFilter.get('exec_time')))
@@ -407,17 +414,27 @@ class Main(object):
 
         return self.fFilter.getTrimmed()
 
+    def _samtools_fixmate(self):
+        """
+        Fix read pairing information and flag
+        """
+        temp_sort_sam_path = self.result_dir + "temp_file_sortByRead.sam"
+        subprocess.call(["samtools", "sort", "-n", "-O", "sam", "-o", temp_sort_sam_path, self.sam])
+        subprocess.call(["samtools", "fixmate", "-O", "sam", temp_sort_sam_path, self.fixmate_sam])
+        remove(temp_sort_sam_path)
+
     def _sam_spliter(self):
         """
+        Split the output bam file according to each reference
         """
-        with pysam.Samfile(self.sam, "r") as samfile:
+        with pysam.Samfile(self.fixmate_sam, "r") as samfile:
             self.bam_header = samfile.header
-
+            # with pysam.Samfile(self.sam, "r") as samfile:
             # Give the header of the sam file to all Reference.Instances to respect the same order
             # references in sorted bam files
             Reference.set_global("bam_header", self.bam_header)
 
-            # Create a dict to collect unmapped and low quality reads
+            # Create a dict to collect unmapped reads and secondary, low quality and low size alignments
             Secondary = Sequence(name='Secondary', length=0)
             Unmapped = Sequence(name='Unmapped', length=0)
             LowMapq = Sequence(name='LowMapq', length=0)
@@ -442,7 +459,9 @@ class Main(object):
                     Reference.addRead(samfile.getrname(read.tid), read)
 
                     # Removing the original sam file which is no longer needed
-        remove(self.sam)  # TODO remove the sam?
+        remove(self.fixmate_sam)  # TODO to suppress or not?
+        remove(self.sam)
+        self.fixmate_sam = None
         self.sam = None
 
     def _garbage_output(self):
@@ -457,14 +476,15 @@ class Main(object):
             make_sam=self.unmapped_sam)
 
         for seq in self.garbage_read:
-            print "Processing garbage reads :{}\tReads aligned :{} ".format(seq.name, seq.nread)
+            print
+            "Processing garbage reads :{}\tReads aligned :{} ".format(seq.name, seq.nread)
             bam_maker.make(
                 header=self.bam_header,
                 read_col=seq.read_list,
                 outpath=self.result_dir + self.outprefix,
                 ref_name=seq.name)
 
-    def _distribution_output(self):
+    def _distribution_output(self):  # Table decomposing Sequence per Reference
         """
         """
         output = "{}{}_Reference_distribution.csv".format(self.result_dir, self.outprefix)
@@ -476,7 +496,7 @@ class Main(object):
                 writer.writerow([ref.name, len(ref), ref.nread, float(ref.nread) / len(ref) * 1000])
             # Add a lines for garbage reads including the secondary alignments
             for seq in self.garbage_read:
-                writer.writerow([seq.name, "NA", seq.nread, "NA"])  # TODO MODIFY: SPLIT AND ADD LOWSIZE - OK?
+                writer.writerow([seq.name, "NA", seq.nread, "NA"])
 
         output = "{}{}_Sequence_distribution.csv".format(self.result_dir, self.outprefix)
         with open(output, 'wb') as csvfile:
