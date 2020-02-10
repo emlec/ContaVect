@@ -8,7 +8,7 @@
 @author     Adrien Leger - 2014
 * <adrien.leger@gmail.com>
 * [Github](https://github.com/a-slide)
-@new developments
+@Maintainer
 @author     Emilie Lecomte
 * <emilie.lecomte@univ-nantes.fr>
 * [Github] (https://github.com/emlec)
@@ -429,7 +429,6 @@ class Main(object):
         """
         with pysam.Samfile(self.fixmate_sam, "r") as samfile:
             self.bam_header = samfile.header
-            # with pysam.Samfile(self.sam, "r") as samfile:
             # Give the header of the sam file to all Reference.Instances to respect the same order
             # references in sorted bam files
             Reference.set_global("bam_header", self.bam_header)

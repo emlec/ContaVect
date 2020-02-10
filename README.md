@@ -27,7 +27,7 @@ The program was developed under Linux Mint 16/17 and require a python 2.7 enviro
 The following dependencies are required for proper program execution:
 
 * [bwa 0.7.0+](https://github.com/lh3/bwa)
-* [samtools 0.1.17+](https://github.com/samtools/samtools)
+* [samtools 1.6+](https://github.com/samtools/samtools)
 * blast+ (not required is not no reference masking is to be performed) 
 
 In addtion 2 third party python packages are also needed: 
