@@ -65,7 +65,7 @@ class Main(object):
 
     # ~~~~~~~CLASS FIELDS~~~~~~~#
 
-    VERSION = "ContaVect 0.3.0"
+    VERSION = "ContaVect 0.4.0"
     USAGE = "Usage: %prog -c Conf.txt [-i -h]"
 
     # ~~~~~~~CLASS METHODS~~~~~~~#
@@ -97,11 +97,9 @@ class Main(object):
         # Create a empty configuration file if needed with the number of reference necessary
         if number_ref:
             if number_ref > 1:
-                print
-                "Create an empty configuration file with {} references in the current folder.".format(number_ref)
+                print("Create an empty configuration file with {} references in the current folder.".format(number_ref))
             else:
-                print
-                "Create an empty configuration file with {} reference in the current folder.".format(number_ref)
+                print("Create an empty configuration file with {} reference in the current folder.".format(number_ref))
             write_conf_file(number_ref)
             exit()
 
@@ -273,7 +271,6 @@ class Main(object):
             index_outname=self.outprefix + ".idx")
 
         print("\n##### FIX READ PAIRING INFORMATION AND FLAG USING SAMTOOLS FIXMATE #####\n")
-        self.fixmate_sam = self.result_dir + self.outprefix + "_fixmate.sam"
         self._samtools_fixmate()
 
         print("\n##### FILTER ALIGNED READS AND ASSIGN A REFERENCE #####\n")
@@ -418,16 +415,17 @@ class Main(object):
         """
         Fix read pairing information and flag
         """
+        # The command line samtools fixmate needs SAM file sorted by read name
         temp_sort_sam_path = self.result_dir + "temp_file_sortByRead.sam"
         subprocess.call(["samtools", "sort", "-n", "-O", "sam", "-o", temp_sort_sam_path, self.sam])
-        subprocess.call(["samtools", "fixmate", "-O", "sam", temp_sort_sam_path, self.fixmate_sam])
+        subprocess.call(["samtools", "fixmate", "-O", "sam", temp_sort_sam_path, self.sam])
         remove(temp_sort_sam_path)
 
     def _sam_spliter(self):
         """
         Split the output bam file according to each reference
         """
-        with pysam.Samfile(self.fixmate_sam, "r") as samfile:
+        with pysam.Samfile(self.sam, "r") as samfile:
             self.bam_header = samfile.header
             # Give the header of the sam file to all Reference.Instances to respect the same order
             # references in sorted bam files
@@ -457,10 +455,8 @@ class Main(object):
                 else:
                     Reference.addRead(samfile.getrname(read.tid), read)
 
-                    # Removing the original sam file which is no longer needed
-        remove(self.fixmate_sam)  # TODO to suppress or not?
+        # Removing the original sam file which is no longer needed
         remove(self.sam)
-        self.fixmate_sam = None
         self.sam = None
 
     def _garbage_output(self):
@@ -475,8 +471,7 @@ class Main(object):
             make_sam=self.unmapped_sam)
 
         for seq in self.garbage_read:
-            print
-            "Processing garbage reads :{}\tReads aligned :{} ".format(seq.name, seq.nread)
+            print("Processing garbage reads :{}\tReads aligned :{} ".format(seq.name, seq.nread))
             bam_maker.make(
                 header=self.bam_header,
                 read_col=seq.read_list,
